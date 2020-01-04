@@ -13,34 +13,27 @@ Plots.unicodeplots()
 
 N(x) = cdf(Normal(),x)
 
-# Strike price discounted by time value of money
-PV(t,T,K,r) = K*exp(-r*(T-t))
-
-d_1(S_t,t,T,K,r,σ) = 1/(σ*√(T-t)) * (log(S_t/K) + (r + σ^2/2)*(T-t))
-d_2(S_t,t,T,K,r,σ) = d_1(S_t,t,T,K,r,σ) - σ*√(T-t)
+d_1(S,t,T,K,r,σ) = (log(S/K) + (r + (σ^2)/2)*(T-t)) / (σ*√(T-t))
+d_2(S,t,T,K,r,σ) = (log(S/K) + (r - (σ^2)/2)*(T-t)) / (σ*√(T-t))
 
 
 # Price of a call option (i.e. the holder has the right to buy stock at maturity)
-# S_t = current stock (underlying) price
+# S = current stock (underlying) price
 # t = current time (time since option created)
 # T = time of maturity
 # K = the price at which the stock may be bought at maturity
 # r = the continuously compounded risk-free rate
 # σ = volatility of the underlying (standard deviation per root unit of time)
-function C(S_t,t; T=1, K=1, r=0.5, σ=0.5)
-    d_1v = d_1(S_t,t,T,K,r,σ)
-    d_2v = d_2(S_t,t,T,K,r,σ)
-    PVv = PV(t,T,K,r)
-    #N(d_1v)*S_t - N(d_2v)*PVv
-    S_t - PVv
-    # Even without randomness the C >= S_t - Ke(-rT) isn't true
-    # e(-r(T-t))  >= e(-rT)
+function C(S,t; T=1, K=1, r=0.5, σ=0.5)
+    d_1v = d_1(S,t,T,K,r,σ)
+    d_2v = d_2(S,t,T,K,r,σ)
+    N(d_1v)*S - N(d_2v)*K*exp(-r*(T-t))
 end
 
 # Price of a put option (i.e. holder may sell at maturity)
-function P(S_t,t; T=1, K=1, r=0.5, σ=0.5)
+function P(S,t; T=1, K=1, r=0.5, σ=0.5)
     PVv = PV(t,T,K,r)
-    PVv - S_t + C(S_t,t, T=T, K=K, r=r, σ=σ)
+    PVv - S + C(S,t, T=T, K=K, r=r, σ=σ)
 end
 
 
@@ -59,13 +52,16 @@ end
 # strike price in a risk free bond, and then exercising the option
 # (so we end up with the stock back and some profit))
 #
-let (S_t,t,K,r,σ) = rand(5), T = t + rand()
+let (S,t,K,r,σ) = rand(5), T = t + rand()
     # The following is true
-    println(S_t >= C(S_t,t;T=T,K=K,r=r,σ=σ))
+    println(S >= C(S,t;T=T,K=K,r=r,σ=σ))
 
     # The following is rarely true, so we have a bug
-    println(C(S_t,t;T=T,K=K,r=r,σ=σ) >= S_t - K*exp(-r*T))
+    println(C(S,t;T=T,K=K,r=r,σ=σ) >= S - K*exp(-r*T))
 end
+
+# This should look like Figure 5.3, page 121 in Joshi (it does)
+p = Plots.plot(); for t in 0:0.2499:1; Plots.plot!(p,x->C(x,t;K=100,σ=0.3,r=0),60:140); end; p
 
 #
 # Price of call option should monotonically increase with volatility
