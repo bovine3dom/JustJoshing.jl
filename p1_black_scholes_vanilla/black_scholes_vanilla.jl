@@ -42,7 +42,7 @@ end
 @assert all(derivative.(x->C(1,0.5;K=x),rand(100_000)*10) .<= 0)
 
 #
-# Call option should be between S and S - Ke(-rT) for all inputs
+# Call option should be between S and S - Ke(-r(T-t)) for all inputs
 #
 # (if call option is more expensive than stock, it is clearly better
 # to just buy the stock; if it is cheaper than the difference between
@@ -51,13 +51,12 @@ end
 # strike price in a risk free bond, and then exercising the option
 # (so we end up with the stock back and some profit))
 #
-let (S,t,K,r,σ) = rand(5), T = t + rand()
-    # The following is true
-    println(S >= C(S,t;T=T,K=K,r=r,σ=σ))
-
-    # The following is rarely true, so we have a bug (either in the code or my understanding)
-    println(C(S,t;T=T,K=K,r=r,σ=σ) >= S - K*exp(-r*T))
-end
+# NB: Joshi refers to time-to-maturity, i.e. t_joshi = T-t :)
+@assert [
+    let (S,t,K,r,σ) = rand(5), T = t + rand()
+        S >= C(S,t;T=T,K=K,r=r,σ=σ) >= (S - K*exp(-r*(T-t)))
+    end
+for _ in 1:100] |> all
 
 # This should look like Figure 5.3, page 121 in Joshi (it does)
 # NB: looks like Joshi's graph is mislabelled - should be spot price
