@@ -1,5 +1,10 @@
 #!/usr/bin/env julia
 
+# Project 1: Vanilla options in a Black-Scholes World
+#
+# Page 437+, Joshi's Mathematical Finance
+
+
 # Best to run this with JULIA_NUM_THREADS=$(nproc) and julia 1.3
 
 # Notation: if f is a function of x, fv is one realisation of that function
@@ -38,11 +43,12 @@ end
 
 # Tests
 
-# Price of call option monotonically decreases with strike price
+# I: see code
+
+# II: Price of call option monotonically decreases with strike price
 @assert all(derivative.(x->C(1,0.5;K=x),rand(100_000)*10) .<= 0)
 
-#
-# Call option should be between S and S - Ke(-r(T-t)) for all inputs
+# III: Call option should be between S and S - Ke(-r(T-t)) for all inputs
 #
 # (if call option is more expensive than stock, it is clearly better
 # to just buy the stock; if it is cheaper than the difference between
@@ -67,9 +73,21 @@ Plots.plot(x->C(1,x),0:0.001:0.9999) # Value of at-the-money approaches zero as 
 Plots.plot(x->C(0.5,0;σ=x),0:0.01:1) # Call options with volatile underlyings are more expensive (Fig 3.8, page 66)
 
 
-# Price of call option should monotonically increase with volatility
+# IV: Price of call option should monotonically increase with volatility
 @assert all(derivative.(x->C(1,0.5;σ=x),rand(1000)) .>= 0)
 
+# V: if d=0 (always true in our model) then price should increase as we get closer to expiry
+@assert all(derivative.(T->C(1,0;T=T),rand(1000)) .>= 0)
+
+# VI: Call option should be a convex function of strike - i.e. gradient is an increasing function of strike
+#   TODO: work out if there's a more ergonomic way of calculating higher order derivatives
+@assert all(derivative.(x->derivative.(K->C(1,0;K=K),x),rand(1000)) .>= 0)
+
+# VII: The price of a call-spread should approximate the price of a digital-call option
+# TODO - NOT IMPLEMENTED - 1) find out what call-spread is and price it; 2) find out to calculate price of digital call (it was really simple IIRC); 3) check they are roughly the same
+
+# VIII: The price of a digital-call option plus a digital-put option is equal to the price of a zero-coupon bond
+# TODO - Not implemented: see VII
 
 # Validation via Monte Carlo
 # Brownian motion
@@ -77,3 +95,5 @@ B(T;B0=100,r=0.02,d=-0.06,σ=0.5) = B0*exp((r-d)*T-0.5*σ^2*T+σ*√T*rand(Norma
 
 # Simulated stock price
 Plots.plot(x->B(x,σ=0.02),0:0.01:1)
+
+
