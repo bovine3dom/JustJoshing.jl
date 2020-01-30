@@ -29,6 +29,7 @@ d_2(S,t,T,K,r,σ) = (log(S/K) + (r - (σ^2)/2)*(T-t)) / (σ*√(T-t))
 # K = the price at which the stock may be bought at maturity
 # r = the continuously compounded risk-free rate
 # σ = volatility of the underlying (standard deviation per root unit of time)
+# TODO: d = dividend rate
 function C(S,t; T=1, K=100, r=0.02, σ=0.5)
     d_1v = d_1(S,t,T,K,r,σ)
     d_2v = d_2(S,t,T,K,r,σ)
@@ -89,11 +90,28 @@ Plots.plot(x->C(0.5,0;σ=x),0:0.01:1) # Call options with volatile underlyings a
 # VIII: The price of a digital-call option plus a digital-put option is equal to the price of a zero-coupon bond
 # TODO - Not implemented: see VII
 
-# Validation via Monte Carlo
+##############################
+#                            #
+# Validation via Monte Carlo #
+#                            #
+##############################
+
 # Brownian motion
-B(T;B0=100,r=0.02,d=-0.06,σ=0.5) = B0*exp((r-d)*T-0.5*σ^2*T+σ*√T*rand(Normal()))
+B(T;B0=100,r=0.02,d=0.00,σ=0.5) = B0*exp((r-d)*T-0.5*σ^2*T+σ*√T*rand(Normal()))
 
 # Simulated stock price
 Plots.plot(x->B(x,σ=0.02),0:0.01:1)
 
+# Sketch of pricer: Brownian motion generates a final stock price; payoff of option is calculated and then discounted. Price of option is average of these.
 
+present_value(v,r,t,T) = v*exp(-r*(T-t))
+
+function rand_price(payoff,S_0;t=0,T=1,K=S_0,r=0.02,σ=0.05)
+    S = B(T-t;B0=S_0,r=r,d=0,σ=σ)
+    present_value(payoff(S,K,t,T,r),r,t,T)
+end
+
+import Statistics: mean
+
+# E.g. Forward contract
+mean([rand_price((S,K,t,T,r)->max(S-K,0),100;t=0.99,T=1,K=100,r=0.02,σ=0.05) for i in 1:100_000_000])
