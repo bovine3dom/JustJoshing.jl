@@ -11,10 +11,7 @@
 
 using Distributions: Normal, cdf
 
-using ForwardDiff: derivative
-
-import Plots
-Plots.unicodeplots()
+export C, P, B, present_value, rand_price
 
 N(x) = cdf(Normal(),x)
 
@@ -42,54 +39,6 @@ function P(S,t; T=1, K=100, r=0.02, σ=0.5)
 end
 
 
-# Tests
-
-# I: see code
-
-# II: Price of call option monotonically decreases with strike price
-@assert all(derivative.(x->C(1,0.5;K=x),rand(100_000)*10) .<= 0)
-
-# III: Call option should be between S and S - Ke(-r(T-t)) for all inputs
-#
-# (if call option is more expensive than stock, it is clearly better
-# to just buy the stock; if it is cheaper than the difference between
-# the current value of the stock and the discounted strike price, we
-# can arbitrage by selling the stock now, buying the option, putting the
-# strike price in a risk free bond, and then exercising the option
-# (so we end up with the stock back and some profit))
-#
-# NB: Joshi refers to time-to-maturity, i.e. t_joshi = T-t :)
-@assert [
-    let (S,t,K,r,σ) = rand(5), T = t + rand()
-        S >= C(S,t;T=T,K=K,r=r,σ=σ) >= (S - K*exp(-r*(T-t)))
-    end
-for _ in 1:100] |> all
-
-# This should look like Figure 5.3, page 121 in Joshi (it does)
-# NB: looks like Joshi's graph is mislabelled - should be spot price
-p = Plots.plot(); for t in 0:0.2499:1; Plots.plot!(p,x->C(x,t;K=100,σ=0.3,r=0),60:140); end; p
-
-Plots.plot(x->C(1,x),0:0.001:0.9999) # Value of at-the-money approaches zero as time approaches maturity (Fig 2.1, page 35)
-
-Plots.plot(x->C(0.5,0;σ=x),0:0.01:1) # Call options with volatile underlyings are more expensive (Fig 3.8, page 66)
-
-
-# IV: Price of call option should monotonically increase with volatility
-@assert all(derivative.(x->C(1,0.5;σ=x),rand(1000)) .>= 0)
-
-# V: if d=0 (always true in our model) then price should increase as we get closer to expiry
-@assert all(derivative.(T->C(1,0;T=T),rand(1000)) .>= 0)
-
-# VI: Call option should be a convex function of strike - i.e. gradient is an increasing function of strike
-#   TODO: work out if there's a more ergonomic way of calculating higher order derivatives
-@assert all(derivative.(x->derivative.(K->C(1,0;K=K),x),rand(1000)) .>= 0)
-
-# VII: The price of a call-spread should approximate the price of a digital-call option
-# TODO - NOT IMPLEMENTED - 1) find out what call-spread is and price it; 2) find out to calculate price of digital call (it was really simple IIRC); 3) check they are roughly the same
-
-# VIII: The price of a digital-call option plus a digital-put option is equal to the price of a zero-coupon bond
-# TODO - Not implemented: see VII
-
 ##############################
 #                            #
 # Validation via Monte Carlo #
@@ -99,9 +48,6 @@ Plots.plot(x->C(0.5,0;σ=x),0:0.01:1) # Call options with volatile underlyings a
 # Brownian motion
 B(T;B0=100,r=0.02,d=0.00,σ=0.5) = B0*exp((r-d)*T-0.5*σ^2*T+σ*√T*rand(Normal()))
 
-# Simulated stock price
-Plots.plot(x->B(x,σ=0.02),0:0.01:1)
-
 # Sketch of pricer: Brownian motion generates a final stock price; payoff of option is calculated and then discounted. Price of option is average of these.
 
 present_value(v,r,t,T) = v*exp(-r*(T-t))
@@ -110,8 +56,3 @@ function rand_price(payoff,S_0;t=0,T=1,K=S_0,r=0.02,σ=0.05)
     S = B(T-t;B0=S_0,r=r,d=0,σ=σ)
     present_value(payoff(S,K,t,T,r),r,t,T)
 end
-
-import Statistics: mean
-
-# E.g. Forward contract
-mean([rand_price((S,K,t,T,r)->max(S-K,0),100;t=0.99,T=1,K=100,r=0.02,σ=0.05) for i in 1:100_000_000])
