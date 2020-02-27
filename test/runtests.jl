@@ -4,7 +4,7 @@ using ForwardDiff: derivative
 
 const EPS = 0.0001
 
-@testset "just_joshing.jl" begin
+@testset "JustJoshing.jl" begin
     # I: see code
 
     # II: Price of call option monotonically decreases with strike price
