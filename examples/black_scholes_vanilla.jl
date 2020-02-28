@@ -4,7 +4,6 @@
 # `env JULIA_NUM_THREADS=(nproc) julia --project`
 
 using JustJoshing
-using KissThreading
 
 import Plots
 Plots.unicodeplots()
@@ -22,18 +21,21 @@ Plots.plot(x->B(x,σ=0.02),0:0.01:1)
 
 
 # Monte-Carlo validation of contracts from payoffs
-import Statistics: mean
-
-#using BenchmarkTools
-
 
 # max(S-K,0): call option
-let S=100, t=0.99, K=100, r=0.02, σ=0.05, T=1, trials=100_000_000
-    bs = C(S,t;T=T,K=K,r=r,σ=σ)
-    (mean(rand_price((S,K,t,T,r)->max(S-K,0),S;t=t,T=T,K=K,r=r,σ=σ) for i in 1:trials) - bs)/ bs |> println
+let S_t=100, t=0.01, K=100, r=0.02, σ=0.05, T=1, trials=100_000_000
+    @show bs = C(S_t,t;T=T,K=K,r=r,σ=σ)
 
-    # Strictly we should use a thread-safe RNG here
-    ((tmapreduce(x->rand_price((S,K,t,T,r)->max(S-K,0),S;t=t,T=T,K=K,r=r,σ=σ),+,1:trials,init=0) / trials) -bs)/bs |> println
+    @show mc = mc_pricer((S,K,t,T,r)->max(S-K,0),S_t;t=t,T=T,K=S_t,r=r,σ=σ)
 
-    # 0.02% error roughly, good enough for me :)
+    @assert isapprox(mc, bs, rtol=1e-4)
+end
+
+# S-K: forward contract
+let S_t=100, t=0.01, K=100, r=0.02, σ=0.05, T=1, trials=100_000_000
+    @show exact = S_t - K*exp(-r*(T-t))
+
+    @show mc = mc_pricer((S,K,t,T,r)->S-K,S_t;t=t,T=T,K=K,r=r,σ=σ)
+
+    @assert isapprox(mc, exact, rtol=1e-4)
 end

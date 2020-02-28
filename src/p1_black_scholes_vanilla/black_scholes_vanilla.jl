@@ -10,8 +10,9 @@
 # Notation: if f is a function of x, fv is one realisation of that function
 
 using Distributions: Normal, cdf
+using KissThreading
 
-export C, P, B, present_value, rand_price
+export C, P, B, present_value, rand_price, mc_pricer
 
 N(x) = cdf(Normal(),x)
 
@@ -56,3 +57,13 @@ function rand_price(payoff,S_0;t=0,T=1,K=S_0,r=0.02,σ=0.05)
     S = B(T-t;B0=S_0,r=r,d=0,σ=σ)
     present_value(payoff(S,K,t,T,r),r,t,T)
 end
+
+# Strictly we should use a thread-safe RNG here
+const mc_pricer(
+    payoff,S_0;t=0,T=1,K=S_0,r=0.02,σ=0.05, trials=100_000_000
+) = tmapreduce(
+    x->rand_price(payoff,S_0;t=t,T=T,K=K,r=r,σ=σ),
+    +,
+    1:trials,
+    init=0
+) / trials

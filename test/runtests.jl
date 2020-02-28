@@ -4,7 +4,7 @@ using ForwardDiff: derivative
 
 const EPS = 0.0001
 
-@testset "JustJoshing.jl" begin
+@testset "Call option consistency" begin
     # I: see code
 
     # II: Price of call option monotonically decreases with strike price
@@ -41,5 +41,25 @@ const EPS = 0.0001
 
     # VIII: The price of a digital-call option plus a digital-put option is equal to the price of a zero-coupon bond
     # TODO - Not implemented: see VII
+end
 
+@testset "Monte-Carlo validation" begin
+    # Validation with Monte-Carlo
+    # S-K: forward contract
+    let S_t=100, t=0.01, K=100, r=0.02, σ=0.05, T=1, trials=100_000_000
+        exact = S_t - K*exp(-r*(T-t))
+
+        mc = mc_pricer((S,K,t,T,r)->S-K,S_t;t=t,T=T,K=K,r=r,σ=σ)
+
+        @test mc ≈ exact rtol=1e-3
+    end
+
+    # max(S-K,0): call option
+    let S_t=100, t=0.01, K=100, r=0.02, σ=0.05, T=1, trials=100_000_000
+        bs = C(S_t,t;T=T,K=K,r=r,σ=σ)
+
+        mc = mc_pricer((S,K,t,T,r)->max(S-K,0),S_t;t=t,T=T,K=S_t,r=r,σ=σ)
+
+        @test mc ≈ bs rtol=1e-3
+    end
 end
