@@ -31,12 +31,12 @@ d_2(S,t,T,K,r,σ) = (log(S/K) + (r - (σ^2)/2)*(T-t)) / (σ*√(T-t))
 function C(S,t; T=1, K=100, r=0.02, σ=0.5)
     d_1v = d_1(S,t,T,K,r,σ)
     d_2v = d_2(S,t,T,K,r,σ)
-    N(d_1v)*S - N(d_2v)*K*exp(-r*(T-t))
+    N(d_1v)*S - N(d_2v)*present_value(K,r,t,T)
 end
 
 # Price of a put option (i.e. holder may sell at maturity)
 function P(S,t; T=1, K=100, r=0.02, σ=0.5)
-    K*exp(-r*(T-t)) - S + C(S,t, T=T, K=K, r=r, σ=σ)
+    present_value(K,r,t,T) - S + C(S,t, T=T, K=K, r=r, σ=σ)
 end
 
 
