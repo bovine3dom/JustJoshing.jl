@@ -39,3 +39,12 @@ let S_t=100, t=0.01, K=100, r=0.02, σ=0.05, T=1, trials=100_000_000
 
     @assert isapprox(mc, exact, rtol=1e-4)
 end
+
+# Int(S>E): barrier option
+let S_t=100, t=0.01, E=100, r=0.02, σ=0.05, T=1, trials=100_000_000
+    @show exact = barrier(S_t,t;E=E,r=r,σ=σ,T=T)
+
+    @show mc = mc_pricer((S,E,t,T,r)->Int(S>E),S_t;t=t,T=T,K=E,r=r,σ=σ)
+
+    @assert isapprox(mc, exact, rtol=1e-4)
+end

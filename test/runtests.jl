@@ -62,4 +62,13 @@ end
 
         @test mc ≈ bs rtol=1e-3
     end
+
+    # Int(S>E): barrier option
+    let S_t=100, t=0.01, E=100, r=0.02, σ=0.05, T=1, trials=100_000_000
+        exact = barrier(S_t,t;E=E,r=r,σ=σ,T=T)
+
+        mc = mc_pricer((S,E,t,T,r)->Int(S>E),S_t;t=t,T=T,K=E,r=r,σ=σ)
+
+        @test mc ≈ exact rtol=1e-3
+    end
 end
