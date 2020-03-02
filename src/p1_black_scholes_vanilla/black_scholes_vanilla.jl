@@ -12,7 +12,7 @@
 using Distributions: Normal, cdf
 using KissThreading
 
-export C, P, B, present_value, rand_price, mc_pricer
+export C, P, B, present_value, rand_price, mc_pricer, barrier
 
 N(x) = cdf(Normal(),x)
 
@@ -39,6 +39,17 @@ function P(S,t; T=1, K=100, r=0.02, σ=0.5)
     present_value(K,r,t,T) - S + C(S,t, T=T, K=K, r=r, σ=σ)
 end
 
+# Price of a barrier option:
+# Payoff of 1 if S(T) > E, 0 otherwise
+# 
+# Source: http://www.iam.fmph.uniba.sk/institute/stehlikova/fd14en/lectures/05_black_scholes_1.pdf
+#
+# Can construct a less than barrier thusly:
+# less_than_barrier = present_value(1) - greater_than_barrier
+# (cf. put call parity)
+function barrier(S,t; T=1, E=100, r=0.02, σ=0.5)
+    present_value(1,r,t,T) * N(d_2(S,t,T,E,r,σ))
+end
 
 ##############################
 #                            #
