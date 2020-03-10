@@ -9,12 +9,12 @@
 
 # Notation: if f is a function of x, fv is one realisation of that function
 
-using Distributions: Normal, cdf
 using KissThreading
+using SpecialFunctions: erf
 
 export C, P, B, present_value, rand_price, mc_pricer, binary
 
-N(x) = cdf(Normal(),x)
+N(x) = 0.5 * (1 + erf(x/sqrt(2)))
 
 d_1(S,t,T,K,r,σ) = (log(S/K) + (r + (σ^2)/2)*(T-t)) / (σ*√(T-t))
 d_2(S,t,T,K,r,σ) = (log(S/K) + (r - (σ^2)/2)*(T-t)) / (σ*√(T-t))
@@ -58,7 +58,7 @@ end
 ##############################
 
 # Brownian motion
-B(T;B0=100,r=0.02,d=0.00,σ=0.5) = B0*exp((r-d)*T-0.5*σ^2*T+σ*√T*rand(Normal()))
+B(T;B0=100,r=0.02,d=0.00,σ=0.5) = B0*exp((r-d)*T-0.5*σ^2*T+σ*√T*randn())
 
 # Sketch of pricer: Brownian motion generates a final stock price; payoff of option is calculated and then discounted. Price of option is average of these.
 
