@@ -26,25 +26,25 @@ Plots.plot(x->B(x,σ=0.02),0:0.01:1)
 let S_t=100, t=0.01, K=100, r=0.02, σ=0.05, T=1, trials=100_000_000
     @show bs = C(S_t,t;T=T,K=K,r=r,σ=σ)
 
-    @show mc = mc_pricer((S,K,t,T,r)->max(S-K,0),S_t;t=t,T=T,K=S_t,r=r,σ=σ)
+    @show mc = mc_pricer((S,K,t,T,r)->max(S-K,0),S_t;t=t,T=T,K=S_t,r=r,σ=σ) |> first
 
-    @assert isapprox(mc, bs, rtol=1e-4)
+    @assert isapprox(mc, bs, rtol=1e-3)
 end
 
 # S-K: forward contract
 let S_t=100, t=0.01, K=100, r=0.02, σ=0.05, T=1, trials=100_000_000
     @show exact = S_t - K*exp(-r*(T-t))
 
-    @show mc = mc_pricer((S,K,t,T,r)->S-K,S_t;t=t,T=T,K=K,r=r,σ=σ)
+    @show mc = mc_pricer((S,K,t,T,r)->S-K,S_t;t=t,T=T,K=K,r=r,σ=σ) |> first
 
-    @assert isapprox(mc, exact, rtol=1e-4)
+    @assert isapprox(mc, exact, rtol=1e-3)
 end
 
 # Int(S>E): binary option
 let S_t=100, t=0.01, E=100, r=0.02, σ=0.05, T=1, trials=100_000_000
     @show exact = binary(S_t,t;E=E,r=r,σ=σ,T=T)
 
-    @show mc = mc_pricer((S,E,t,T,r)->Int(S>E),S_t;t=t,T=T,K=E,r=r,σ=σ)
+    @show mc = mc_pricer((S,E,t,T,r)->Int(S>E),S_t;t=t,T=T,K=E,r=r,σ=σ) |> first
 
-    @assert isapprox(mc, exact, rtol=1e-4)
+    @assert isapprox(mc, exact, rtol=1e-3)
 end
