@@ -48,3 +48,9 @@ let S_t=100, t=0.01, E=100, r=0.02, σ=0.05, T=1, trials=100_000_000
 
     @assert isapprox(mc, exact, rtol=1e-3)
 end
+
+# Asian option, fixed strike
+# TODO: compare prices with European options, look at impact volatility has
+s = 80:1:120; t = [0; round.(-1*10 .^(-2:0.2:-1);sigdigits = 2)]
+a = (x->mc_pricer_pathdep((S,K,t,T,r)->max(mean(S)-100,0),x[1],trials=100_000,r=0,t=x[2]:0.1:0,T=0,σ=0.5)).(Iterators.product(s,t))
+plot(s,first.(a),labels=string.(t'))

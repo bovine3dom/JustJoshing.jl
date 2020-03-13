@@ -12,7 +12,7 @@
 using KissThreading
 using SpecialFunctions: erf
 
-export C, P, B, present_value, rand_price, mc_pricer, binary
+export C, P, B, present_value, rand_price, mc_pricer, binary, mc_pricer_pathdep
 
 N(x) = 0.5 * (1 + erf(x/sqrt(2)))
 
@@ -77,6 +77,26 @@ function mc_pricer(
         x->begin
             p = rand_price(payoff,S_0;t=t,T=T,K=K,r=r,σ=σ)
             (p,p^2) # Second term is to keep track of standard error
+        end,
+        (a,b)->a.+b,
+        Base.OneTo(trials),
+        batch_size=1000,
+        init=(0.0, 0.0)
+    )
+
+    mean = linear/trials
+
+    (mean = mean, sem = sqrt(squared/trials - mean^2)/sqrt(trials))
+end
+
+function mc_pricer_pathdep(
+    payoff,S_0;t=[0],T=1,K=S_0,r=0.02,σ=0.05, trials=100_000_000
+)
+    linear, squared = tmapreduce(
+        x->begin
+            p = B.(T.-t;B0=S_0,r=r,d=0,σ=σ)
+            price = present_value(payoff(p,K,t,T,r),r,t[1],T) # Payoff must operate on time series
+            (price,price^2) 
         end,
         (a,b)->a.+b,
         Base.OneTo(trials),
