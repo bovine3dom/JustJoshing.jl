@@ -28,22 +28,22 @@ function mc_pricer(payoff;rng=CURAND.randn,S_0=100,t=0,T=1.0,r=0.02,σ=0.05,tria
   (mean = mean(prices), sem = std(prices)/sqrt(trials))
 end
 
-function mc_pricer_pathdep(payoff;S_0=100,ts::Array{Float32,1}=[0f0],T=1.0f0,r=0.02f0,σ=0.05f0)
-  # Almost the same speed as using CPU
-  # TODO: more work : )
+function mc_pricer_pathdep(payoff;S_0=100,ts=0:0.1:1,T=1.0f0,r=0.02f0,σ=0.05f0)
+  # Much faster than CPU - now check why!
   trials = 100_000
-  a = Iterators.product(randn(Float32,trials),ts) |> collect |> cu;
-  #a = B.(rng(Float32,trials),0.9) # ;B0=S_0,T=T-t,r=0.02,σ=0.05) # CuArrays doesn't like any extra args?
+  a = CuArrays.CURAND.randn(Float32,trials)
     
-    
-  Bbake(x::Tuple{Float32,Float32})::Float32 = begin
-    p = x[1]
-    t = x[2]
-    S_0*CuArrays.CUDAnative.exp(r*T-0.5f0*σ^2*T+σ*CuArrays.CUDAnative.pow(T-t,0.5f0)*p) # sqrt(T-t) doesn't work
+  Bbake(p,t)::Float32 = begin
+    S_0*CuArrays.CUDAnative.exp(
+        r*T -
+        0.5f0*σ^2*T +
+        p*σ*CuArrays.CUDAnative.sqrt(T-t)
+    )
   end
   # If prices is not a cuarray we get a big slowdown
   # Need to ensure that our function operates on array for max
-  prices::CuArray{Float32,2} = payoff(Bbake.(a)) # payoff must act on a price x time matrix
+  prices::CuArray{Float32,2} = payoff(Bbake.(a,ts'))
+    
   (mean = mean(prices), sem = std(prices)/sqrt(trials))
 end
 
