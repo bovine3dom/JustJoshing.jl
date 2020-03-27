@@ -27,13 +27,15 @@ function mc_pricer(payoff;rng=CURAND.randn,S_0=100,t=0,T=1.0,r=0.02,σ=0.05,tria
 
   # TODO: stuff gets converted to f64 here - which IIRC is much slower on GPUs
   Bbake(x) = S_0*CuArrays.CUDAnative.exp(r*T-0.5*σ^2*T+σ*CuArrays.CUDAnative.pow(T-t,0.5)*x) # sqrt(T-t) doesn't work
-  prices = present_value.(payoff(Bbake.(a)),r,t,T)
+  prices = present_value.(payoff.(Bbake.(a)),r,t,T)
   (mean = mean(prices), sem = std(prices)/sqrt(trials))
 end
 
-function mc_pricer_pathdep(payoff;S_0=100,ts=0:0.1:1,T=1.0f0,r=0.02f0,σ=0.05f0)
+# TODO: 
+# - this gives different results to JustJoshing.mc_pricer_pathdep - build a failing test
+# - try to unify the interface with the CPU based one (tricky as we need to "reach in" and specify dims=2?)
+function mc_pricer_pathdep(payoff;S_0=100,t=0:0.1:1,T=1.0f0,r=0.02f0,σ=0.05f0,trials=100_000)
   # Much faster than CPU - now check why!
-  trials = 100_000
   a = CuArrays.CURAND.randn(Float32,trials)
     
   Bbake(p,t)::Float32 = begin
@@ -45,7 +47,7 @@ function mc_pricer_pathdep(payoff;S_0=100,ts=0:0.1:1,T=1.0f0,r=0.02f0,σ=0.05f0)
   end
   # If prices is not a cuarray we get a big slowdown
   # Need to ensure that our function operates on array for max
-  prices::CuArray{Float32,2} = payoff(Bbake.(a,ts'))
+  prices::CuArray{Float32,2} = payoff(Bbake.(a,t'))
     
   (mean = mean(prices), sem = std(prices)/sqrt(trials))
 end
