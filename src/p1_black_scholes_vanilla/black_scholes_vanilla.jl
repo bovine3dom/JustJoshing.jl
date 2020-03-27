@@ -64,18 +64,18 @@ B(T;B0=100,r=0.02,d=0.00,σ=0.5) = B0*exp((r-d)*T-0.5*σ^2*T+σ*√T*randn())
 
 present_value(v,r,t,T) = v*exp(-r*(T-t))
 
-function rand_price(payoff,S_0;t=0,T=1,K=S_0,r=0.02,σ=0.05)
+function rand_price(payoff;S_0=100,t=0,T=1,K=S_0,r=0.02,σ=0.05)
     S = B(T-t;B0=S_0,r=r,d=0,σ=σ)
-    present_value(payoff(S,K,t,T,r),r,t,T)
+    present_value(payoff(S),r,t,T)
 end
 
 # Strictly we should use a thread-safe RNG here
 function mc_pricer(
-    payoff,S_0;t=0,T=1,K=S_0,r=0.02,σ=0.05, trials=100_000_000
+    payoff;S_0=100,t=0,T=1,K=S_0,r=0.02,σ=0.05, trials=100_000_000
 )
     linear, squared = tmapreduce(
         x->begin
-            p = rand_price(payoff,S_0;t=t,T=T,K=K,r=r,σ=σ)
+            p = rand_price(payoff;S_0=S_0,t=t,T=T,K=K,r=r,σ=σ)
             (p,p^2) # Second term is to keep track of standard error
         end,
         (a,b)->a.+b,
@@ -90,12 +90,12 @@ function mc_pricer(
 end
 
 function mc_pricer_pathdep(
-    payoff,S_0;t=[0],T=1,K=S_0,r=0.02,σ=0.05, trials=100_000_000
+    payoff;S_0=100,t=[0],T=1,K=S_0,r=0.02,σ=0.05, trials=100_000_000
 )
     linear, squared = tmapreduce(
         x->begin
             p = B.(T.-t;B0=S_0,r=r,d=0,σ=σ)
-            price = present_value(payoff(p,K,t,T,r),r,t[1],T) # Payoff must operate on time series
+            price = present_value(payoff(p),r,t[1],T) # Payoff must operate on time series
             (price,price^2) 
         end,
         (a,b)->a.+b,
