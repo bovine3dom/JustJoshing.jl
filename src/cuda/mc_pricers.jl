@@ -4,9 +4,12 @@
 #
 # Will port into main library once I'm happy with it
 
-using BenchmarkTools, CuArrays, Plots
+module CUDA
+
+export mc_pricer, mc_pricer_pathdep
+
+using CuArrays # Unfortunately this gives a warning - see https://github.com/JuliaPackaging/Requires.jl/issues/65
 CuArrays.allowscalar(false)
-Plots.unicodeplots()
 
 using Statistics: mean, std
 
@@ -47,14 +50,4 @@ function mc_pricer_pathdep(payoff;S_0=100,ts=0:0.1:1,T=1.0f0,r=0.02f0,σ=0.05f0)
   (mean = mean(prices), sem = std(prices)/sqrt(trials))
 end
 
-function mc_pricer_pathdep_cpu(payoff;S_0=100,ts::Array{Float32,1}=[0f0],T=1.0f0,r=0.02f0,σ=0.05f0)
-  trials = 100_000
-  a = Iterators.product(randn(Float32,trials),ts)
-  Bbake(x::Tuple{Float32,Float32})::Float32 = begin
-    p = x[1]
-    t = x[2]
-    S_0*exp(r*T-0.5f0*σ^2*T+σ*sqrt(T-t)*p)
-  end
-  prices = payoff(Bbake.(a)) # payoff must act on a price x time matrix
-  (mean = mean(prices), sem = std(prices)/sqrt(trials))
 end
