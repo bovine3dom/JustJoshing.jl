@@ -9,7 +9,7 @@
 
 # Notation: if f is a function of x, fv is one realisation of that function
 
-using KissThreading
+import ThreadsX
 using SpecialFunctions: erf
 
 export C, P, B, present_value, rand_price, mc_pricer, binary, mc_pricer_pathdep
@@ -73,14 +73,13 @@ end
 function mc_pricer(
     payoff;S_0=100,t=0,T=1,K=S_0,r=0.02,σ=0.05, trials=100_000_000
 )
-    linear, squared = tmapreduce(
+    linear, squared = ThreadsX.mapreduce(
         x->begin
             p = rand_price(payoff;S_0=S_0,t=t,T=T,K=K,r=r,σ=σ)
             (p,p^2) # Second term is to keep track of standard error
         end,
         (a,b)->a.+b,
         Base.OneTo(trials),
-        batch_size=1000,
         init=(0.0, 0.0)
     )
 
@@ -92,7 +91,7 @@ end
 function mc_pricer_pathdep(
     payoff;S_0=100,t=[0],T=1,K=S_0,r=0.02,σ=0.05, trials=100_000_000
 )
-    linear, squared = tmapreduce(
+    linear, squared = ThreadsX.mapreduce(
         x->begin
             p = B.(T.-t;B0=S_0,r=r,d=0,σ=σ)
             price = present_value(payoff(p),r,t[1],T) # Payoff must operate on time series
@@ -100,7 +99,6 @@ function mc_pricer_pathdep(
         end,
         (a,b)->a.+b,
         Base.OneTo(trials),
-        batch_size=1000,
         init=(0.0, 0.0)
     )
 
